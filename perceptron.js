@@ -1,5 +1,5 @@
 function Perceptron(dna = null, mutationRate = -1) {
-    var weights = [random(-1, 1), random(-1, 1), random(-1, 1)];
+    var weights = [random(-1, 1), random(-1, 1), random(-1, 1), random(-1, 1)];
     if (dna) {
         for (var i = 0; i < dna.length; i++) {
             weights[i] = dna[i];

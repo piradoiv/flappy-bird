@@ -3,7 +3,6 @@ var img,
     bg,
     flappy,
     tubes,
-    score,
     debug,
     status,
     buffer,
@@ -11,10 +10,12 @@ var img,
     canFlap,
     targetHeightDiff,
     targetDistance,
-    neuron,
-    population,
     flapTimer,
-    gameOverTimer;
+    gameOverTimer,
+    neuron;
+var score = 0;
+var attempts = 0;
+var population = [];
 
 function preload() {
     img = loadImage('flappy-assets.png');
@@ -94,20 +95,28 @@ function preload() {
             h: 97
         }
     };
-
-    population = [];
 }
 
 function setup() {
     frameRate(60);
     createCanvas(287, 511);
     buffer = createGraphics(width, height);
+    debug = false;
+
+    for (var i = 0; i < 100; i++) {
+        population.push({dna: [random(-1, 1), random(-1, 1), random(-1, 1), random(-1, 1)], score: 0});
+    }
+
+    restart();
+}
+
+function restart() {
+    createCanvas(287, 511);
     flappy = new Flappy();
     tubes = [];
-    transparency = 0;
     score = 0;
-    debug = false;
     canFlap = true;
+    status = 'playing';
     loop();
 }
 
@@ -142,6 +151,7 @@ function draw() {
 
         if (intersects(flappy.bounds(), tub.bounds())) {
             gameOver();
+            return;
         }
 
         tub.update();
@@ -150,6 +160,7 @@ function draw() {
 
     targetHeightDiff = -1;
     targetDistance = -1;
+    floorDistance = height - 122 - flappy.pos().y;
     for (var i = 0; i < tubes.length; i += 2) {
         if (targetDistance != -1 && targetHeightDiff != -1) {
             continue;
@@ -164,7 +175,7 @@ function draw() {
         }
     }
 
-    var shouldFlap = neuron.think([targetHeightDiff, targetDistance, 1]);
+    var shouldFlap = neuron.think([targetHeightDiff, targetDistance, floorDistance, 1]);
     if (shouldFlap) {
         flappy.flap();
     }
@@ -186,6 +197,10 @@ function draw() {
 
     if (debug && targetDistance) {
         text(targetDistance, 25, 60);
+    }
+
+    if (debug && floorDistance) {
+        text(floorDistance, 25, 90);
     }
 
     push();
@@ -220,22 +235,19 @@ function draw() {
 }
 
 function gameOver() {
+    noLoop();
     status = 'game over';
     canFlap = false;
-    noLoop();
 
     var dna = neuron.getWeights();
-    if (score > 0 && dna != [0, 0, 0]) {
-        population.push({dna: neuron.getWeights(), score: score});
+    population.push({dna: neuron.getWeights(), score: score});
+    if (population.length > 100) {
+        population = population.slice(Math.max(population.length - 100, 1))
     }
-    weights = nextGeneration();
-    neuron = new Perceptron(weights, 0.01 + (1 / (population.length + 5)));
 
-    clearTimeout(gameOverTimer);
-    gameOverTimer = setTimeout(function() {
-        canFlap = true;
-        flappy.flap();
-    }, 2000);
+    weights = nextGeneration();
+    neuron = new Perceptron(weights, 0.01 + (1 / (attempts + 2)));
+    restart();
 }
 
 function keyPressed() {
@@ -262,16 +274,15 @@ function intersects(a, b) {
 }
 
 function nextGeneration() {
-    if (population.length < 2) {
-        return [random(-1, 1), random(-1, 1), random(-1, 1)];
-    }
-
+    attempts++;
     var weights = [];
     var parents = [];
+    var banned = [];
     var record = 0;
 
     for (var i = 0; i < population.length; i++) {
         var current = population[i];
+        var glory = current.score * current.score;
         if (current.score > record) {
             record = current.score;
         }
@@ -280,25 +291,24 @@ function nextGeneration() {
     var currentLoop = 0;
     while (parents.length != 2) {
         currentLoop++;
-        var current = population[floor(random(population.length))];
-        var ns = current.score / (record + 0.01);
+        var i = floor(random(population.length));
+        var current = population[i];
+        var ns = (current.score * current.score) / (record + 0.01);
 
-        if (ns < random()) {
+        if (banned.indexOf(i) == -1 && random() < ns) {
+            banned.push(i);
             parents.push(current.dna);
             continue;
         }
 
         if (currentLoop > 5000) {
-            parents.push([random(-1, 1), random(-1, 1), random(-1, 1)]);
+            parents.push(current.dna);
             continue;
         }
     }
 
     for (var i = 0; i < parents[0].length; i++) {
         weights[i] = parents[round(random())][i];
-        if (random() < 0.02) {
-            weights[i] = random(-1, 1);
-        }
     }
 
     return weights;

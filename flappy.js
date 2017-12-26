@@ -7,11 +7,6 @@ function Flappy() {
     var gravity = createVector(0, 0.15);
 
     this.flap = function() {
-        if (status == 'game over') {
-            status = 'playing';
-            setup();
-        }
-
         if (!canFlap) {
             return false;
         }
@@ -37,6 +32,7 @@ function Flappy() {
             location.y = height - 111 - 11;
             speed.mult(0);
             gameOver();
+            return;
         }
 
         location.add(speed);
