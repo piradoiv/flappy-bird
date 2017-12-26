@@ -8,4 +8,6 @@ If you really want to learn about Processing & p5 (visualisation, making games, 
 
 I've did this Flappy Bird clone about a year ago and adapted the code to implement a Perceptron, poor's man Genetics and any new crazy thing I've watched on Shiffman's YouTube channel.
 
+I've also took the idea about the distance to the tubes and elevation from [this video](https://www.youtube.com/watch?v=aeWmdojEJf0).
+
 Please feel free to open issues and pull requests.
